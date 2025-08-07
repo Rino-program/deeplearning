@@ -1,15 +1,4 @@
 # osero.py
-"""
-今後の目標
-一手戻る機能 -> 間違い修正 -> 履歴を残す # 完了！
-一手進む機能 -> 一手戻るの逆 # 完了！
-置く座標を分かりやすく # 座標表示のみ
-出力を見やすく(日本語化とか？) # 実装しない
-駒が置けなくなった時の対処法 # 完了！
-投了機能 # 完了！
-駒が置ける所を提案 # 完了！
-class化 # 完了！
-"""
 class osero:
     def __init__(self, size = 8):
         self.size = size
@@ -262,6 +251,7 @@ def main():
     print("finish!\nFinal board:")
     count = board.count_pieces()
     print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
+    print(f"{1 if count[1] > count[-1] else -1} Wins! / {1 if count[1] < count[-1] else -1} Loses...")
     board.print_board_human()
     input("Press Enter to exit...")
     return 0
