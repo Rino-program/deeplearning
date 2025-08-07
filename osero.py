@@ -80,7 +80,7 @@ class osero:
             return False
 
         # 8方向を確認
-        for dr, dc in directions:
+        for dr, dc in self.directions:
             r, c = row + dr, col + dc
             found_opponent = False
 
@@ -104,7 +104,7 @@ class osero:
         cols = len(board[0])
 
         # 各方向を確認して裏返す
-        for dr, dc in directions:
+        for dr, dc in self.directions:
             r, c = row + dr, col + dc
             path = []  # 挟んだ駒の座標を記録するリスト
             while 0 <= r < rows and 0 <= c < cols and board[r][c] != 0 and board[r][c] != piece:
