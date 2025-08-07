@@ -7,9 +7,11 @@
 駒が置けなくなった時の対処法
 投了機能
 駒が置ける所を提案
+class化 # 完了！
 """
 class osero:
     def __init__(self, size = 8):
+        self.size = size
         # 駒を置けるかチェックする方向
         self.directions = [
             (-1, 0),  # 上
@@ -53,10 +55,11 @@ class osero:
         board = [['B' if cell == -1 else 'W' if cell == 1 else '.' for cell in row] for row in self.board]
         # 盤面の表示
         print("Othello Board(human):")
-        print("+ " + "- " * len(board[0]) + "+")
-        for row in board:
-            print("| " + " ".join(row) + " |")  # map(str, row) を削除
-        print("+ " + "- " * len(board[0]) + "+")
+        print("  c " + " ".join(map(str, list(range(self.size)))))
+        print("r + " + "- " * len(board[0]) + "+")
+        for i, row in enumerate(board):
+            print(str(i) + " | " + " ".join(row) + " |")  # map(str, row) を削除
+        print("  + " + "- " * len(board[0]) + "+")
 
     def print_board_pc(self): # PC用
         print("Othello Board(PC):")
@@ -143,24 +146,24 @@ class osero:
 
 def main():
     board = osero()
-    osero.print_board_pc()
-    osero.print_board_human()
+    board.print_board_pc()
+    board.print_board_human()
 
     piece = int(input("Enter your piece (1 or -1): "))
     if piece not in [1, -1]:
         print("Invalid piece. Please enter 1 or -1.")
         return
 
-    while isnot_finished():
+    while board.isnot_finished():
         print("Current board:")
-        count = osero.count_pieces()
+        count = board.count_pieces()
         print(f"Count -> 1: {count[1]}, -1: {count[-1]}, Empty: {count[0]}")
-        osero.print_board_human()
+        board.print_board_human()
         print(f"Your piece: {piece}")
         try:
             col = int(input("Enter column (0-7): "))
             row = int(input("Enter row (0-7): "))
-            osero.add_piece(row, col, piece)
+            board.add_piece(row, col, piece)
             piece = 1 if piece == -1 else -1  # Switch pieces
         except ValueError as e:
             print(e)
@@ -168,9 +171,9 @@ def main():
             print(f"An error occurred: {e}")
             print("Please contact the developer.")
     print("finish!\nFinal board:")
-    count = osero.count_pieces()
+    count = board.count_pieces()
     print(f"Count -> 0: {count[1]}, 1: {count[-1]}, Empty: {count[0]}")
-    osero.print_board_human()
+    board.print_board_human()
 
 if __name__ == "__main__":
     main()
