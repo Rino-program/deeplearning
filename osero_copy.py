@@ -1,7 +1,4 @@
 # osero.py
-"""
-両者とも合法手が無い事がある。
-"""
 class osero:
     def __init__(self, size = 8):
         self.size = size
@@ -201,61 +198,62 @@ class osero:
         return proposals
 
 def main():
+    import random
+    import time
     size = int(input("Enter board size (default 8): ") or 8)
-    board = osero(size)
-    board.print_board_pc()
-    board.print_board_human()
-
     piece = int(input("Enter your piece (1 or -1): "))
     if piece not in [1, -1]:
         print("Invalid piece. Please enter 1 or -1.")
         return "Invalid piece start"
 
-    while board.isnot_finished():
-        print("Current board:")
+    maps = []
+    di = {1:0, -1:0}
+    n = int(input("Enter number of games to play (default 10): ") or 10)
+    for j in range(n):
+        board = osero(size)
+        turn_piece = [1, -1][j % 2]
+        pass_count = 0  # 連続パス回数
+        while board.isnot_finished():
+            count = board.count_pieces()
+            can_li = board.piece_proposal(turn_piece)
+            if not can_li:
+                turn_piece = 1 if turn_piece == -1 else -1
+                board.turn += 1
+                pass_count += 1
+                if pass_count >= 2:
+                    print("Both players cannot move. Game over.")
+                    break
+                continue
+            pass_count = 0  # 合法手があればパス回数リセット
+            try:
+                row, col = random.choice(can_li)
+                board.add_piece(row, col, turn_piece)
+                turn_piece = 1 if turn_piece == -1 else -1
+            except ValueError as e:
+                print(e)
+            except KeyboardInterrupt:
+                print("\nGame interrupted by user.")
+                return "Game interrupted"
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                print("Please contact the developer.")
         count = board.count_pieces()
-        print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
-        board.print_board_human_can_place(piece)
-        print(f"Your piece: {piece}")
-        if not board.piece_proposal(piece): # 駒を置ける場所がない場合
-            print("No valid moves available.")
-            piece = 1 if piece == -1 else -1  # Switch pieces
-            board.turn += 1
-            continue
+        x = 1 if count[1] > count[-1] else -1
         try:
-            print("Enter coordinates using numbers, go back with 'b', go forward with 'e', and exit with minus sign.")
-            col = input(f"Enter column (0-{board.size-1}): ")
-            row = input(f"Enter row (0-{board.size-1}): ")
-            com = [col, row]
-            if "b" in com or "B" in com:
-                piece = board.piece_back()
-                continue
-            elif "e" in com or "E" in com:
-                piece = board.piece_forward()
-                continue
-            col, row = int(col), int(row)
-            if col < 0 or row < 0:
-                if input("Will you surrender?(y/n):") == "y":
-                    count = board.count_pieces()
-                    print(f"{-piece} Wins! / {piece} Loses...")
-                    print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
-                    board.print_board_human()
-                    return "surrender break"
-            board.add_piece(row, col, piece)
-            piece = 1 if piece == -1 else -1  # Switch pieces
-        except ValueError as e:
-            print(e)
-        except KeyboardInterrupt:
-            print("\nGame interrupted by user.")
-            return "Game interrupted"
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            print("Please contact the developer.")
-    print("finish!\nFinal board:")
-    count = board.count_pieces()
-    print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
-    print(f"{1 if count[1] > count[-1] else -1} Wins! / {1 if count[1] < count[-1] else -1} Loses...")
-    board.print_board_human()
+            maps.append((board, count))
+            di[x] += 1
+        except:
+            pass
+        # 進捗
+        if j % (n // 10) == 0:
+            print(f"Progress: {j * 100 // n}%")
+    print("Game results:")
+    """for i, (b, c) in enumerate(maps):
+        print(f"Game {i+1}:")
+        b.print_board_human()
+        print(f"Count -> " + ", ".join(f"{k}: {v}" for k, v in c.items()) + ":")
+    """
+    print(di)
     input("Press Enter to exit...")
     return 0
 
