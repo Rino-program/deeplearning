@@ -1,16 +1,16 @@
-45# osero.py
+# osero.py
 """
 今後の目標
-一手戻る機能 -> 間違い修正 -> 履歴を残す
-置く座標を分かりやすく
-出力を見やすく(日本語化とか？)
-駒が置けなくなった時の対処法
-投了機能
-駒が置ける所を提案
+一手戻る機能 -> 間違い修正 -> 履歴を残す # 完了！
+一手進む機能 -> 一手戻るの逆 # 完了！
+置く座標を分かりやすく # 座標表示のみ
+出力を見やすく(日本語化とか？) # 実装しない
+駒が置けなくなった時の対処法 # 完了！
+投了機能 # 完了！
+駒が置ける所を提案 # 完了！
 class化 # 完了！
 """
 class osero:
-    import sys
     def __init__(self, size = 8):
         self.size = size
         # 駒を置けるかチェックする方向
@@ -24,7 +24,6 @@ class osero:
             (1, -1),  # 左下
             (1, 1)    # 右下
         ]
-        import sys
 
         # Github Copilotのから提供 Thanks!
         """
@@ -42,6 +41,8 @@ class osero:
         board_init[mid-1][mid] = -1
         board_init[mid][mid-1] = -1
         self.board = board_init
+        self.history = []
+        self.turn = 0  # ←ここを 1 から 0 に修正
 
     def load_board_from_file(self, filename):
         board = []
@@ -56,10 +57,28 @@ class osero:
         board = [['B' if cell == -1 else 'W' if cell == 1 else '.' for cell in row] for row in self.board]
         # 盤面の表示
         print("Othello Board(human):")
+        print("Turn:", self.turn)
         print("  c " + " ".join(map(str, list(range(self.size)))))
         print("r + " + "- " * len(board[0]) + "+")
         for i, row in enumerate(board):
             print(str(i) + " | " + " ".join(row) + " |")  # map(str, row) を削除
+        print("  + " + "- " * len(board[0]) + "+")
+
+    def print_board_human_can_place(self, piece): # 人間用
+        # "B" = -1 (黒), "W" = 1 (白), "." = 空き
+        board = [['B' if cell == -1 else 'W' if cell == 1 else '.' for cell in row] for row in self.board]
+        # 盤面の表示
+        print("Othello Board(human):")
+        print("Turn:", self.turn)
+        print("  c " + " ".join(map(str, list(range(self.size)))))
+        print("r + " + "- " * len(board[0]) + "+")
+        for i, row in enumerate(board):
+            row_str = " ".join(row)
+            # 駒を置ける場所を示す
+            for j in range(len(row)):
+                if self.can_place_piece(i, j, piece):
+                    row_str = row_str[:j*2] + '*' + row_str[j*2+1:]
+            print(str(i) + " | " + row_str + " |")
         print("  + " + "- " * len(board[0]) + "+")
 
     def print_board_pc(self): # PC用
@@ -67,7 +86,7 @@ class osero:
         for row in self.board:
             print(row)
 
-    def can_place_piece(self, row, col, piece): # Github Copilotのから提供 Thanks!
+    def can_place_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
         # 盤面のサイズ
         board = self.board
         rows = len(board)
@@ -98,7 +117,7 @@ class osero:
         # どの方向でも駒を置けない場合はFalse
         return False
 
-    def line_change_piece(self, row, col, piece): # Github Copilotのから提供 Thanks!
+    def line_change_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
         # 盤面のサイズ
         board = self.board
         rows = len(board)
@@ -117,15 +136,22 @@ class osero:
             if 0 <= r < rows and 0 <= c < cols and board[r][c] == piece:
                 for pr, pc in path:
                     self.board[pr][pc] = piece
+                    # 履歴に記録
+                    self.history[-1]["row"].append(pr)
+                    self.history[-1]["col"].append(pc)
 
     def add_piece(self, row, col, piece):
-        # 駒を置く前に、置けるか確認
         board = self.board
         if row < 0 or row >= len(board) or col < 0 or col >= len(board[0]):
             raise ValueError("Row or column out of bounds")
         if self.can_place_piece(row, col, piece):
             board[row][col] = piece
-            self.line_change_piece(row, col, piece)  # 追加: 駒を置いた後に裏返す処理を呼び出す
+            # ここで履歴を切り詰める
+            if len(self.history) > self.turn:
+                self.history = self.history[:self.turn]
+            self.history.append({"row": [row], "col": [col], "piece": piece})
+            self.turn += 1
+            self.line_change_piece(row, col, piece)
         else:
             raise ValueError("Invalid move")
 
@@ -136,8 +162,8 @@ class osero:
                 return True
         return False
 
-    # どちらが多いか
     def count_pieces(self):
+        # どちらが多いか
         count = {1: 0, -1: 0, 0: 0}
         for row in self.board:
             for cell in row:
@@ -145,43 +171,101 @@ class osero:
                     count[cell] += 1
         return count
 
+    def piece_back(self):
+        # 最後の手を戻す
+        if self.turn <= 0:  # ←ここも0に修正
+            raise ValueError("No moves to undo")
+        print("piece_back")
+        last_move = self.history[self.turn - 1]
+        row, col = last_move["row"][0], last_move["col"][0]
+        piece = last_move["piece"]
+        self.board[row][col] = 0
+        for i, j in zip(last_move["row"][1:], last_move["col"][1:]):
+            self.board[i][j] = -piece
+        self.turn -= 1
+        return -piece  # 次に打つべき駒の色
+
+    def piece_forward(self):
+        # 最後の手を進める
+        if self.turn >= len(self.history):
+            raise ValueError("No moves to redo")
+        print("piece_forward")
+        last_move = self.history[self.turn]
+        row, col = last_move["row"][0], last_move["col"][0]
+        piece = last_move["piece"]
+        self.board[row][col] = piece
+        for i, j in zip(last_move["row"][1:], last_move["col"][1:]):
+            self.board[i][j] = piece
+        self.turn += 1
+        return -piece  # 次に打つべき駒の色
+
+    def piece_proposal(self, piece):
+        # 駒を置ける場所を提案する
+        proposals = []
+        for r in range(self.size):
+            for c in range(self.size):
+                if self.can_place_piece(r, c, piece):
+                    proposals.append((r, c))
+        return proposals
+
 def main():
-    board = osero()
+    size = int(input("Enter board size (default 8): ") or 8)
+    board = osero(size)
     board.print_board_pc()
     board.print_board_human()
 
     piece = int(input("Enter your piece (1 or -1): "))
     if piece not in [1, -1]:
         print("Invalid piece. Please enter 1 or -1.")
-        return
+        return "Invalid piece start"
 
     while board.isnot_finished():
         print("Current board:")
         count = board.count_pieces()
-        print(f"Count -> 1: {count[1]}, -1: {count[-1]}, Empty: {count[0]}")
-        board.print_board_human()
+        print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
+        board.print_board_human_can_place(piece)
         print(f"Your piece: {piece}")
+        if not board.piece_proposal(piece): # 駒を置ける場所がない場合
+            print("No valid moves available.")
+            piece = 1 if piece == -1 else -1  # Switch pieces
+            board.turn += 1
+            continue
         try:
-            col = int(input("Enter column (0-7): "))
-            row = int(input("Enter row (0-7): "))
+            print("Enter coordinates using numbers, go back with 'b', go forward with 'e', and exit with minus sign.")
+            col = input(f"Enter column (0-{board.size-1}): ")
+            row = input(f"Enter row (0-{board.size-1}): ")
+            com = [col, row]
+            if "b" in com or "B" in com:
+                piece = board.piece_back()
+                continue
+            elif "e" in com or "E" in com:
+                piece = board.piece_forward()
+                continue
+            col, row = int(col), int(row)
             if col < 0 or row < 0:
                 if input("Will you surrender?(y/n):") == "y":
-                    print(f"{-piece} Wins! / {piece} Loses...")
                     count = board.count_pieces()
-                    print(f"Count -> 0: {count[1]}, 1: {count[-1]}, Empty: {count[0]}")
+                    print(f"{-piece} Wins! / {piece} Loses...")
+                    print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
                     board.print_board_human()
-                    sys.exit()
+                    return "surrender break"
             board.add_piece(row, col, piece)
             piece = 1 if piece == -1 else -1  # Switch pieces
         except ValueError as e:
             print(e)
+        except KeyboardInterrupt:
+            print("\nGame interrupted by user.")
+            return "Game interrupted"
         except Exception as e:
             print(f"An error occurred: {e}")
             print("Please contact the developer.")
     print("finish!\nFinal board:")
     count = board.count_pieces()
-    print(f"Count -> 0: {count[1]}, 1: {count[-1]}, Empty: {count[0]}")
+    print(f"Count -> " + ", ".join(f"{i}: {v}" for i, v in count.items()) + ":")
     board.print_board_human()
+    input("Press Enter to exit...")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    n = main()
+    print("Exit code:", n)
