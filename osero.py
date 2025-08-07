@@ -1,4 +1,4 @@
-# osero.py
+45# osero.py
 """
 今後の目標
 一手戻る機能 -> 間違い修正 -> 履歴を残す
@@ -10,6 +10,7 @@
 class化 # 完了！
 """
 class osero:
+    import sys
     def __init__(self, size = 8):
         self.size = size
         # 駒を置けるかチェックする方向
@@ -122,9 +123,9 @@ class osero:
         board = self.board
         if row < 0 or row >= len(board) or col < 0 or col >= len(board[0]):
             raise ValueError("Row or column out of bounds")
-        if can_place_piece(row, col, piece):
+        if self.can_place_piece(row, col, piece):
             board[row][col] = piece
-            line_change_piece(row, col, piece)  # 追加: 駒を置いた後に裏返す処理を呼び出す
+            self.line_change_piece(row, col, piece)  # 追加: 駒を置いた後に裏返す処理を呼び出す
         else:
             raise ValueError("Invalid move")
 
@@ -163,6 +164,13 @@ def main():
         try:
             col = int(input("Enter column (0-7): "))
             row = int(input("Enter row (0-7): "))
+            if col < 0 or row < 0:
+                if input("Will you surrender?(y/n):") == "y":
+                    print(f"{-piece} Wins! / {piece} Loses...")
+                    count = board.count_pieces()
+                    print(f"Count -> 0: {count[1]}, 1: {count[-1]}, Empty: {count[0]}")
+                    board.print_board_human()
+                    sys.exit()
             board.add_piece(row, col, piece)
             piece = 1 if piece == -1 else -1  # Switch pieces
         except ValueError as e:
