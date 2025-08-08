@@ -76,23 +76,7 @@ class osero:
         for row in self.board:
             print(row)
 
-    def will_can_piece(self, row, col, task = False):
-        self.not_piece += 1  # 置けない人数をカウント
-        if self.not_piece >= 2:  # 置けない人数が2人
-            s = set()
-            print("Both players cannot move.")
-            for r in range(self.size):
-                for c in range(self.size):
-                    if self.board[r][c] == 0:
-                        for dr, dc in self.directions:
-                            nr, nc = r + dr, c + dc
-                            if 0 <= nr < self.size and 0 <= nc < self.size and (self.board[nr][nc] == 1 or self.board[nr][nc] == -1):
-                                s.add((r, c))
-            if (row, col) in s:
-                return True if task == False else list(s)
-        return False if task == False else []
-
-    def can_place_piece(self, row = None, col = None, piece = None, task = False): # Github Copilotのから提供 Thanks! (自己改良済み)
+    def can_place_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
         # 盤面のサイズ
         board = self.board
         rows = len(board)
@@ -121,8 +105,33 @@ class osero:
                 self.not_piece = 0  # 置ける場合は置けない人数をリセット
                 return True
 
-        # どの方向でも駒を置けない場合は専用関数を呼び出す
-        return self.will_can_piece(row, col, task)
+        return False
+
+    def will_can_piece(self, piece):
+        # 置けるところを提案
+        li_can = []
+        for r in range(self.size):
+            for c in range(self.size):
+                if self.can_place_piece(r, c, piece):
+                    li_can.append((r, c))
+        if li_can:
+            self.not_piece = 0  # 置ける場合は置けない人数をリセット
+            return li_can
+
+        self.not_piece += 1  # 置けない人数をカウント
+        if self.not_piece >= 2:  # 置けない人数が2人
+            s = set()
+            print("Both players cannot move.")
+            for r in range(self.size):
+                for c in range(self.size):
+                    if self.board[r][c] == 0:
+                        for dr, dc in self.directions:
+                            nr, nc = r + dr, c + dc
+                            if 0 <= nr < self.size and 0 <= nc < self.size and self.board[nr][nc] == piece:
+                                s.add((r, c))
+            self.not_piece = 0  # ここでリセット
+            return list(s)
+        return []
 
     def line_change_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
         # 盤面のサイズ
@@ -217,14 +226,14 @@ def main():
 
     maps = []
     di = {1:0, -1:0}
-    n = int(input("Enter number of games to play (default 10): ") or 10)
+    n = int(input("Enter number of games to play (default 100): ") or 100)
     for j in range(n):
         board = osero(size)
         turn_piece = [1, -1][j % 2]
         pass_count = 0  # 連続パス回数
         while board.isnot_finished():
             count = board.count_pieces()
-            can_li = board.can_place_piece(turn_piece, task=True)
+            can_li = board.will_can_piece(piece=turn_piece)
             try:
                 row, col = random.choice(can_li)
                 board.add_piece(row, col, turn_piece)
