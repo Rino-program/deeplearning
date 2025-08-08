@@ -32,6 +32,7 @@ class osero:
         self.board = board_init
         self.history = []
         self.turn = 0  # ←ここを 1 から 0 に修正
+        self.not_piece = 0  # 置けない人数
 
     def load_board_from_file(self, filename):
         board = []
@@ -75,7 +76,23 @@ class osero:
         for row in self.board:
             print(row)
 
-    def can_place_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
+    def will_can_piece(self, row, col, task = False):
+        self.not_piece += 1  # 置けない人数をカウント
+        if self.not_piece >= 2:  # 置けない人数が2人
+            s = set()
+            print("Both players cannot move.")
+            for r in range(self.size):
+                for c in range(self.size):
+                    if self.board[r][c] == 0:
+                        for dr, dc in self.directions:
+                            nr, nc = r + dr, c + dc
+                            if 0 <= nr < self.size and 0 <= nc < self.size and (self.board[nr][nc] == 1 or self.board[nr][nc] == -1):
+                                s.add((r, c))
+            if (row, col) in s:
+                return True if task == False else list(s)
+        return False if task == False else []
+
+    def can_place_piece(self, row = None, col = None, piece = None, task = False): # Github Copilotのから提供 Thanks! (自己改良済み)
         # 盤面のサイズ
         board = self.board
         rows = len(board)
@@ -101,10 +118,11 @@ class osero:
 
             # 相手の駒が続いた後に自分の駒があるか確認
             if found_opponent and 0 <= r < rows and 0 <= c < cols and board[r][c] == piece:
+                self.not_piece = 0  # 置ける場合は置けない人数をリセット
                 return True
 
-        # どの方向でも駒を置けない場合はFalse
-        return False
+        # どの方向でも駒を置けない場合は専用関数を呼び出す
+        return self.will_can_piece(row, col, task)
 
     def line_change_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
         # 盤面のサイズ
@@ -188,15 +206,6 @@ class osero:
         self.turn += 1
         return -piece  # 次に打つべき駒の色
 
-    def piece_proposal(self, piece):
-        # 駒を置ける場所を提案する
-        proposals = []
-        for r in range(self.size):
-            for c in range(self.size):
-                if self.can_place_piece(r, c, piece):
-                    proposals.append((r, c))
-        return proposals
-
 def main():
     import random
     import time
@@ -215,16 +224,7 @@ def main():
         pass_count = 0  # 連続パス回数
         while board.isnot_finished():
             count = board.count_pieces()
-            can_li = board.piece_proposal(turn_piece)
-            if not can_li:
-                turn_piece = 1 if turn_piece == -1 else -1
-                board.turn += 1
-                pass_count += 1
-                if pass_count >= 2:
-                    print("Both players cannot move. Game over.")
-                    break
-                continue
-            pass_count = 0  # 合法手があればパス回数リセット
+            can_li = board.can_place_piece(turn_piece, task=True)
             try:
                 row, col = random.choice(can_li)
                 board.add_piece(row, col, turn_piece)
