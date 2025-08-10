@@ -2,37 +2,19 @@
 class osero:
     def __init__(self, size = 8):
         self.size = size
-        # 駒を置けるかチェックする方向
         self.directions = [
-            (-1, 0),  # 上
-            (1, 0),   # 下
-            (0, -1),  # 左
-            (0, 1),   # 右
-            (-1, -1), # 左上
-            (-1, 1),  # 右上
-            (1, -1),  # 左下
-            (1, 1)    # 右下
+            (-1, 0), (1, 0), (0, -1), (0, 1),
+            (-1, -1), (-1, 1), (1, -1), (1, 1)
         ]
-
-        # Github Copilotのから提供 Thanks!
-        """
-        今後の予定
-        強化学習に対応するために複数マップをすようできるようにする。
-        案：
-        initの引数で個数指定またはadd_board関数を作って実行
-        動かすボードを引数で指定できるようにする
-        """
         board_init = [[0 for _ in range(size)] for _ in range(size)]
         mid = size // 2
-        # 初期配置
         board_init[mid-1][mid-1] = 1
         board_init[mid][mid] = 1
         board_init[mid-1][mid] = -1
         board_init[mid][mid-1] = -1
         self.board = board_init
         self.history = []
-        self.turn = 0  # ←ここを 1 から 0 に修正
-        self.not_piece = 0  # 置けない人数
+        self.turn = 0
 
     def load_board_from_file(self, filename):
         """ファイルからボードを読み込む"""
@@ -80,62 +62,32 @@ class osero:
         for row in self.board:
             print(row)
 
-    def can_place_piece(self, row, col, piece):# Github Copilotのから提供 Thanks! (自己改良済み)
-        """置けるかどうかを確認"""
-        # 盤面のサイズ
+    def can_place_piece(self, row, col, piece):
         board = self.board
         rows = len(board)
         cols = len(board[0])
-
-        # 駒の種類と相手の駒を定義
         opponent_piece = 1 if piece == -1 else -1
-
-        # 座標が盤面外の場合、またはすでに駒が置かれている場合はFalse
         if row < 0 or row >= rows or col < 0 or col >= cols or board[row][col] != 0:
             return False
-
-        # 8方向を確認
         for dr, dc in self.directions:
             r, c = row + dr, col + dc
             found_opponent = False
-
-            # 相手の駒が続いているか確認
             while 0 <= r < rows and 0 <= c < cols and board[r][c] == opponent_piece:
                 found_opponent = True
                 r += dr
                 c += dc
-
-            # 相手の駒が続いた後に自分の駒があるか確認
             if found_opponent and 0 <= r < rows and 0 <= c < cols and board[r][c] == piece:
-                self.not_piece = 0  # 置ける場合は置けない人数をリセット
                 return True
-
         return False
 
     def will_can_piece(self, piece):
-        """置けるところを提案"""
+        """置けるところをリストで返す"""
         li_can = []
         for r in range(self.size):
             for c in range(self.size):
                 if self.can_place_piece(r, c, piece):
                     li_can.append((r, c))
-        if li_can:
-            self.not_piece = 0  # 置ける場合は置けない人数をリセット
-            return li_can
-
-        self.not_piece += 1  # 置けない人数をカウント
-        if self.not_piece >= 2:  # 置けない人数が2人
-            s = set()
-            print("Both players cannot move.")
-            for r in range(self.size):
-                for c in range(self.size):
-                    if self.board[r][c] == 0:
-                        for dr, dc in self.directions:
-                            nr, nc = r + dr, c + dc
-                            if 0 <= nr < self.size and 0 <= nc < self.size and self.board[nr][nc] == piece:
-                                s.add((r, c))
-            return list(s)
-        return []
+        return li_can
 
     def line_change_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
         """置いた駒に応じて裏返す"""
@@ -175,6 +127,7 @@ class osero:
             self.turn += 1
             self.line_change_piece(row, col, piece)
         else:
+            print(row, col, piece)
             raise ValueError("Invalid move")
 
     def isnot_finished(self):
@@ -207,18 +160,27 @@ def main():
 
     maps = []
     di = {1:0, -1:0}
+    game_over = 0
     n = int(input("Enter number of games to play (default 100): ") or 100)
     for j in range(n):
         board = osero(size)
-        turn_piece = [1, -1][j % 2] # 先手と後手を交互にする
-        pass_count = 0  # 連続パス回数
+        turn_piece = [1, -1][j % 2]
+        pass_count = 0
         while board.isnot_finished():
-            count = board.count_pieces()
             can_li = board.will_can_piece(piece=turn_piece)
+            if not can_li:
+                pass_count += 1
+                if pass_count >= 2:
+                    game_over += 1
+                    print(f"Game {j+1} over.")
+                    break
+                turn_piece = 1 if turn_piece == -1 else -1
+                continue
+            else:
+                pass_count = 0
             try:
-                if can_li:
-                    row, col = random.choice(can_li)
-                    board.add_piece(row, col, turn_piece)
+                row, col = random.choice(can_li)
+                board.add_piece(row, col, turn_piece)
                 turn_piece = 1 if turn_piece == -1 else -1
             except ValueError as e:
                 print(e)
@@ -235,15 +197,9 @@ def main():
             di[x] += 1
         except:
             pass
-        # 進捗
         if j % (n // 10) == 0:
             print(f"Progress: {j * 100 // n}%")
     print("Game results:")
-    """for i, (b, c) in enumerate(maps):
-        print(f"Game {i+1}:")
-        b.print_board_human()
-        print(f"Count -> " + ", ".join(f"{k}: {v}" for k, v in c.items()) + ":")
-    """
     print(di)
     input("Press Enter to exit...")
     return 0
