@@ -35,6 +35,7 @@ class osero:
         self.not_piece = 0  # 置けない人数
 
     def load_board_from_file(self, filename):
+        """ファイルからボードを読み込む"""
         board = []
         with open(filename, 'r') as file:
             for line in file:
@@ -43,6 +44,7 @@ class osero:
         return board
 
     def print_board_human(self): # 人間用
+        """人が読み取りやすいマップを表示"""
         # "B" = -1 (黒), "W" = 1 (白), "." = 空き
         board = [['B' if cell == -1 else 'W' if cell == 1 else '.' for cell in row] for row in self.board]
         # 盤面の表示
@@ -55,6 +57,7 @@ class osero:
         print("  + " + "- " * len(board[0]) + "+")
 
     def print_board_human_can_place(self, piece): # 人間用
+        """人が読み取りやすいマップを表示しながら置ける場所を示す"""
         # "B" = -1 (黒), "W" = 1 (白), "." = 空き
         board = [['B' if cell == -1 else 'W' if cell == 1 else '.' for cell in row] for row in self.board]
         # 盤面の表示
@@ -72,11 +75,13 @@ class osero:
         print("  + " + "- " * len(board[0]) + "+")
 
     def print_board_pc(self): # PC用
+        """PC用の盤面を表示(内部データをそのまま表示)"""
         print("Othello Board(PC):")
         for row in self.board:
             print(row)
 
-    def can_place_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
+    def can_place_piece(self, row, col, piece):# Github Copilotのから提供 Thanks! (自己改良済み)
+        """置けるかどうかを確認"""
         # 盤面のサイズ
         board = self.board
         rows = len(board)
@@ -108,7 +113,7 @@ class osero:
         return False
 
     def will_can_piece(self, piece):
-        # 置けるところを提案
+        """置けるところを提案"""
         li_can = []
         for r in range(self.size):
             for c in range(self.size):
@@ -129,11 +134,11 @@ class osero:
                             nr, nc = r + dr, c + dc
                             if 0 <= nr < self.size and 0 <= nc < self.size and self.board[nr][nc] == piece:
                                 s.add((r, c))
-            self.not_piece = 0  # ここでリセット
             return list(s)
         return []
 
     def line_change_piece(self, row, col, piece): # Github Copilotのから提供 Thanks! (自己改良済み)
+        """置いた駒に応じて裏返す"""
         # 盤面のサイズ
         board = self.board
         rows = len(board)
@@ -157,6 +162,7 @@ class osero:
                     self.history[-1]["col"].append(pc)
 
     def add_piece(self, row, col, piece):
+        """盤面に駒を置く"""
         board = self.board
         if row < 0 or row >= len(board) or col < 0 or col >= len(board[0]):
             raise ValueError("Row or column out of bounds")
@@ -172,6 +178,7 @@ class osero:
             raise ValueError("Invalid move")
 
     def isnot_finished(self):
+        """ゲームが終了しているか確認"""
         # 盤面に空きがあるか確認
         for row in self.board:
             if 0 in row:
@@ -179,6 +186,7 @@ class osero:
         return False
 
     def count_pieces(self):
+        """盤面にある駒の数をカウント"""
         # どちらが多いか
         count = {1: 0, -1: 0, 0: 0}
         for row in self.board:
@@ -187,41 +195,14 @@ class osero:
                     count[cell] += 1
         return count
 
-    def piece_back(self):
-        # 最後の手を戻す
-        if self.turn <= 0:  # ←ここも0に修正
-            raise ValueError("No moves to undo")
-        print("piece_back")
-        last_move = self.history[self.turn - 1]
-        row, col = last_move["row"][0], last_move["col"][0]
-        piece = last_move["piece"]
-        self.board[row][col] = 0
-        for i, j in zip(last_move["row"][1:], last_move["col"][1:]):
-            self.board[i][j] = -piece
-        self.turn -= 1
-        return -piece  # 次に打つべき駒の色
-
-    def piece_forward(self):
-        # 最後の手を進める
-        if self.turn >= len(self.history):
-            raise ValueError("No moves to redo")
-        print("piece_forward")
-        last_move = self.history[self.turn]
-        row, col = last_move["row"][0], last_move["col"][0]
-        piece = last_move["piece"]
-        self.board[row][col] = piece
-        for i, j in zip(last_move["row"][1:], last_move["col"][1:]):
-            self.board[i][j] = piece
-        self.turn += 1
-        return -piece  # 次に打つべき駒の色
-
 def main():
+    """オセロ実行メイン関数 """
     import random
     import time
     size = int(input("Enter board size (default 8): ") or 8)
-    piece = int(input("Enter your piece (1 or -1): "))
+    piece = int(input("Enter your piece (1 or -1)(default 1): ") or 1)
     if piece not in [1, -1]:
-        print("Invalid piece. Please enter 1 or -1.")
+        print("Invalid piece. Please enter 1 or -1")
         return "Invalid piece start"
 
     maps = []
@@ -229,14 +210,15 @@ def main():
     n = int(input("Enter number of games to play (default 100): ") or 100)
     for j in range(n):
         board = osero(size)
-        turn_piece = [1, -1][j % 2]
+        turn_piece = [1, -1][j % 2] # 先手と後手を交互にする
         pass_count = 0  # 連続パス回数
         while board.isnot_finished():
             count = board.count_pieces()
             can_li = board.will_can_piece(piece=turn_piece)
             try:
-                row, col = random.choice(can_li)
-                board.add_piece(row, col, turn_piece)
+                if can_li:
+                    row, col = random.choice(can_li)
+                    board.add_piece(row, col, turn_piece)
                 turn_piece = 1 if turn_piece == -1 else -1
             except ValueError as e:
                 print(e)
