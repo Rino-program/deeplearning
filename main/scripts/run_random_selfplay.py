@@ -8,9 +8,6 @@
   - 勝率ログやELO等の評価に拡張
   - Agent を差し替え（Random vs 将来の学習済みAgent）
 """
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import numpy as np

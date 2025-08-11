@@ -1,0 +1,6 @@
+numpy==1.26.4
+pytest==8.2.2
+pandas==2.2.2
+tqdm==4.66.4
+# matplotlib はグラフ化したくなったら解除
+# matplotlib==3.9.0
